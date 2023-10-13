@@ -63,16 +63,23 @@ typedef unsigned char bool;
  *
  */
 
+typedef struct
+{
+	int type;		// 명령어 유형 (0: R-format, 1: R-Shift, 2: I-format)
+	int opcode; // Opcode 값 (또는 funct 값, R-Shift 경우)
+} InstructionInfo;
+
 /* table */
 const char *registers[32] = {
-		"$zero", "$at", "$v0", "$v1", "$a0", "$a1", "$a2", "$a3",
-		"$t0", "$t1", "$t2", "$t3", "$t4", "$t5", "$t6", "$t7",
-		"$s0", "$s1", "$s2", "$s3", "$s4", "$s5", "$s6", "$s7",
-		"$t8", "$t9", "$k0", "$k1", "$gp", "$sp", "$fp", "$ra"};
+		"zero", "at", "v0", "v1", "a0", "a1", "a2", "a3",
+		"t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
+		"s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7",
+		"t8", "t9", "k0", "k1", "gp", "sp", "fp", "ra"};
+
+int r_opcode = 0; // 고정
 
 /* R-format */
 const char *r_instructions[] = {"add", "sub", "and", "or", "nor"};
-int r_opcode = 0; // 고정
 int r_funct[] = {0x20, 0x22, 0x24, 0x25, 0x27};
 
 /* R-Shift */
@@ -83,53 +90,78 @@ int r_shift_funct[] = {0x00, 0x02, 0x03};
 const char *i_instructions[] = {"addi", "andi", "ori", "lw", "sw", "beq", "bne"};
 int i_opcodes[] = {0x08, 0x0c, 0x0d, 0x23, 0x2b, 0x04, 0x05};
 
-int detectInstructionType(const char *instruction)
+InstructionInfo detectType(const char *token)
 {
+	InstructionInfo info;
+	info.type = -1; // 기본값
+
 	for (int i = 0; i < 5; i++)
 	{
-		if (strcmp(instruction, r_instructions[i]) == 0)
+		if (strcmp(token, r_instructions[i]) == 0)
 		{
-			return 0; // R-format
+			info.type = 0; // R-format
+			info.opcode = r_funct[i];
+			return info;
 		}
 	}
 
 	for (int i = 0; i < 3; i++)
 	{
-		if (strcmp(instruction, r_shift_instructions[i]) == 0)
+		if (strcmp(token, r_shift_instructions[i]) == 0)
 		{
-			return 1; // R-Shift format
+			info.type = 1; // R-Shift format
+			info.opcode = r_shift_funct[i];
+			return info;
 		}
 	}
 
 	for (int i = 0; i < 7; i++)
 	{
-		if (strcmp(instruction, i_instructions[i]) == 0)
+		if (strcmp(token, i_instructions[i]) == 0)
 		{
-			return 2; // I-format
+			info.type = 2; // I-format
+			info.opcode = i_opcodes[i];
+			return info;
 		}
 	}
 
-	return -1;
+	return info;
+}
+
+const int getRegisterNum(const char *token)
+{
+	for (int i = 0; i < 32; i++)
+	{
+		if (strcmp(token, registers[i]) == 0)
+		{
+			return i;
+		}
+	}
+	return 0;
 }
 
 static unsigned int translate(int nr_tokens, char *tokens[])
 {
-	unsigned int code = 0x02324020;
-	int instruction_type = detectInstructionType(tokens[0]);
-	switch (instruction_type)
+	unsigned int code = 0x02324020; // 기본값
+	InstructionInfo instructionInfo = detectType(tokens[0]);
+	switch (instructionInfo.type)
 	{
-	case 0:
-		printf("hi r");
+	case 0: // R-format (not Shift)
+		printf("hi r / %x\n", instructionInfo.opcode);
+		int srcReg = getRegisterNum(tokens[1]);
+		int tarReg = getRegisterNum(tokens[2]);
+		int destReg = getRegisterNum(tokens[3]);
+		printf("%d %d %d", srcReg, tarReg, destReg);
 		break;
-	case 1:
-		printf("hi s");
+	case 1: // R-format (Shift)
+		printf("hi s / %x\n", instructionInfo.opcode);
 		break;
-	case 2:
-		printf("hi i");
+	case 2: // I-format
+		printf("hi i / %x\n", instructionInfo.opcode);
 		break;
 	default:
-		// 에러 처리
-		printf("hi err");
+		// wrong cmd handling
+		printf("hi err / %x\n", instructionInfo.opcode);
 		break;
 	}
 
