@@ -109,7 +109,7 @@ InstructionInfo detectType(const char *token)
 	{
 		if (strcmp(token, r_shift_instructions[i]) == 0)
 		{
-			info.type = 1; // R-Shift format
+			info.type = 1; // R-format (Shift)
 			info.opcode = r_shift_funct[i];
 			return info;
 		}
@@ -142,26 +142,36 @@ const int getRegisterNum(const char *token)
 
 static unsigned int translate(int nr_tokens, char *tokens[])
 {
-	unsigned int code = 0x02324020; // 기본값
+	unsigned int code = 0;
 	InstructionInfo instructionInfo = detectType(tokens[0]);
 	switch (instructionInfo.type)
 	{
 	case 0: // R-format (not Shift)
-		printf("hi r / %x\n", instructionInfo.opcode);
-		int srcReg = getRegisterNum(tokens[1]);
-		int tarReg = getRegisterNum(tokens[2]);
-		int destReg = getRegisterNum(tokens[3]);
-		printf("%d %d %d", srcReg, tarReg, destReg);
+	{
+		int rd = getRegisterNum(tokens[1]);
+		int rs = getRegisterNum(tokens[2]);
+		int rt = getRegisterNum(tokens[3]);
+		code = (instructionInfo.opcode << 0) | (rd << 11) | (rt << 16) | (rs << 21);
 		break;
+	}
 	case 1: // R-format (Shift)
-		printf("hi s / %x\n", instructionInfo.opcode);
+	{
+		int rd = getRegisterNum(tokens[1]);
+		int rt = getRegisterNum(tokens[2]);
+		int shamt = (int)strtol(tokens[3], NULL, 0);
+		code = (instructionInfo.opcode << 0) | (shamt << 6) | (rd << 11) | (rt << 16);
 		break;
+	}
 	case 2: // I-format
-		printf("hi i / %x\n", instructionInfo.opcode);
+	{
+		int rd = getRegisterNum(tokens[1]);
+		int rt = getRegisterNum(tokens[2]);
+		int shamt = (int)strtol(tokens[3], NULL, 0);
+		code = (instructionInfo.opcode << 0) | (shamt << 6) | (rd << 11) | (rt << 16);
 		break;
+	}
 	default:
-		// wrong cmd handling
-		printf("hi err / %x\n", instructionInfo.opcode);
+		printf("wrong command");
 		break;
 	}
 
