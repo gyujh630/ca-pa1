@@ -65,8 +65,8 @@ typedef unsigned char bool;
 
 typedef struct
 {
-	int type;		// 명령어 유형 (0: R-format, 1: R-Shift, 2: I-format)
-	int opcode; // Opcode 값 (또는 funct 값, R-Shift 경우)
+	int type;
+	int opcode;
 } InstructionInfo;
 
 /* table */
@@ -74,9 +74,7 @@ const char *registers[32] = {
 		"zero", "at", "v0", "v1", "a0", "a1", "a2", "a3",
 		"t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
 		"s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7",
-		"t8", "t9", "k0", "k1", "gp", "sp", "fp", "ra"};
-
-int r_opcode = 0; // 고정
+		"t8", "t9", "k1", "k2", "gp", "sp", "fp", "ra"};
 
 /* R-format */
 const char *r_instructions[] = {"add", "sub", "and", "or", "nor"};
@@ -164,24 +162,26 @@ static unsigned int translate(int nr_tokens, char *tokens[])
 	}
 	case 2: // I-format
 	{
-		printf("%s %s %s %s\n", tokens[0], tokens[1], tokens[2], tokens[3]);
-
-		int rt = getRegisterNum(tokens[1]);
-		int rs = getRegisterNum(tokens[2]);
-		printf("%d %d\n", rt, rs);
-		int immediate = (int)strtol(tokens[3], NULL, 0);
+		int immediate, rt, rs = 0;
+		if (instructionInfo.opcode == 0x23 || instructionInfo.opcode == 0x2b) // lw, sw
+		{
+			rt = getRegisterNum(tokens[1]);
+			rs = getRegisterNum(tokens[3]);
+			immediate = (int)strtol(tokens[2], NULL, 0);
+		}
+		else
+		{
+			rt = getRegisterNum(tokens[1]);
+			rs = getRegisterNum(tokens[2]);
+			immediate = (int)strtol(tokens[3], NULL, 0);
+		}
 		if (immediate < 0)
 		{
-			immediate = 0xffff0000 ^ immediate; // 음수를 부호 없는 16비트로 변환
+			immediate = (immediate & 0xFFFF);
 		}
-		printf("%d", immediate);
 
-		// code = (immediate << 0) | (rt << 16) | (rs << 21) | (instructionInfo.opcode << 26);
+		code = (immediate << 0) | (rt << 16) | (rs << 21) | (instructionInfo.opcode << 26);
 
-		code += (instructionInfo.opcode << 26);
-		code += (rt << 16);
-		code += (rs << 21);
-		code += immediate;
 		break;
 	}
 	default:
