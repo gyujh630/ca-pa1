@@ -164,10 +164,24 @@ static unsigned int translate(int nr_tokens, char *tokens[])
 	}
 	case 2: // I-format
 	{
-		int rd = getRegisterNum(tokens[1]);
-		int rt = getRegisterNum(tokens[2]);
-		int shamt = (int)strtol(tokens[3], NULL, 0);
-		code = (instructionInfo.opcode << 0) | (shamt << 6) | (rd << 11) | (rt << 16);
+		printf("%s %s %s %s\n", tokens[0], tokens[1], tokens[2], tokens[3]);
+
+		int rt = getRegisterNum(tokens[1]);
+		int rs = getRegisterNum(tokens[2]);
+		printf("%d %d\n", rt, rs);
+		int immediate = (int)strtol(tokens[3], NULL, 0);
+		if (immediate < 0)
+		{
+			immediate = 0xffff0000 ^ immediate; // 음수를 부호 없는 16비트로 변환
+		}
+		printf("%d", immediate);
+
+		// code = (immediate << 0) | (rt << 16) | (rs << 21) | (instructionInfo.opcode << 26);
+
+		code += (instructionInfo.opcode << 26);
+		code += (rt << 16);
+		code += (rs << 21);
+		code += immediate;
 		break;
 	}
 	default:
